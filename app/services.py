@@ -98,8 +98,9 @@ def process_bulk(ids: list[int], batch_size: int = 50):
 
 def group_and_summarize_similarities() -> pd.DataFrame:
     """
-    Para cada motivação, coleta até 5 exemplos e pede ao GPT
-    para listar as principais semelhanças de todos os casos.
+    Para cada motivação, pega até 5 exemplos e pede ao GPT
+    as principais semelhanças. Retorna:
+      motivation | protocols         | similarities
     """
     db = SessionLocal()
     comps = db.query(Complaint).filter(Complaint.motivation.isnot(None)).all()
@@ -113,12 +114,14 @@ def group_and_summarize_similarities() -> pd.DataFrame:
 
     groups = []
     for mot, grp in df.groupby("motivation"):
-        prots    = grp["protocol"].tolist()
-        exemplos = [truncate(t, 200) for t in grp["text"].tolist()[:5]]
+        # Usa ponto‐e‐vírgula para separar e garante strings
+        prots = [str(p) for p in grp["protocol"].tolist()]
+        protocols_str = "; ".join(prots)
 
+        exemplos = [truncate(t, 200) for t in grp["text"].tolist()[:5]]
         prompt = (
             f"Estes {len(prots)} casos foram classificados como “{mot}”.\n\n"
-            "Aqui estão alguns exemplos:\n" +
+            "Exemplos:\n" +
             "\n".join(f"- {e}" for e in exemplos) +
             "\n\nListe as PRINCIPAIS semelhanças entre todos esses casos."
         )
@@ -132,7 +135,8 @@ def group_and_summarize_similarities() -> pd.DataFrame:
 
         groups.append({
             "motivation": mot,
-            "protocols": ",".join(prots),
+            # string grande, mas pandas escreve como texto
+            "protocols": protocols_str,
             "similarities": sims
         })
 

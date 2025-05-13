@@ -89,23 +89,23 @@ def complaints_status():
 
 @app.get("/motivations/similarities")
 def export_motivation_similarities():
-    """
-    Gera um Excel com 'motivation', 'protocols' e 'similarities'
-    para cada grupo de motivação.
-    """
     df = group_and_summarize_similarities()
+    
 
     out = io.BytesIO()
     with pd.ExcelWriter(out, engine="openpyxl") as writer:
-        df.to_excel(writer, sheet_name="motivation_similarities", index=False)
+        df.to_excel(
+            writer,
+            sheet_name="motivation_similarities",
+            index=False,
+            columns=["motivation", "protocols", "similarities"]
+        )
     out.seek(0)
-
-    headers = {
-        "Content-Disposition":
-            "attachment; filename=motivation_similarities.xlsx"
-    }
     return StreamingResponse(
         out,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers=headers
+        headers={
+            "Content-Disposition":
+              "attachment; filename=motivation_similarities.xlsx"
+        }
     )
